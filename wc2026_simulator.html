@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FIFA World Cup 2026 — Live Simulator</title>
+<style>
+  :root {
+    --bg:#0a0a0a; --bg2:#111; --bg3:#1a1a1a; --border:#2a2a2a;
+    --white:#fff; --gray:#888; --lightgray:#ccc;
+    --green:#22c55e; --yellow:#f59e0b; --red:#ef4444; --gold:#ffd700;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--white);font-family:'Segoe UI',system-ui,sans-serif;font-size:13px}
+  header{background:var(--bg);border-bottom:1px solid var(--border);padding:16px 24px;display:flex;align-items:center;gap:14px}
+  header .badge{background:var(--white);color:var(--bg);font-weight:900;font-size:10px;letter-spacing:2px;padding:3px 8px;text-transform:uppercase}
+  header h1{font-size:20px;font-weight:800;letter-spacing:-0.5px}
+  header .sub{color:var(--gray);font-size:11px}
+  .live-dot{width:8px;height:8px;border-radius:50%;background:var(--green);animation:pulse 1.5s infinite;margin-left:auto}
+  .live-lbl{color:var(--green);font-size:11px;font-weight:700;letter-spacing:1px}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+  nav{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 24px;display:flex;overflow-x:auto}
+  nav button{background:none;border:none;color:var(--gray);padding:14px 18px;cursor:pointer;font-size:13px;font-weight:600;border-bottom:2px solid transparent;transition:all .2s;white-space:nowrap}
+  nav button:hover{color:var(--white)}
+  nav button.active{color:var(--white);border-bottom-color:var(--white)}
+  main{padding:24px;max-width:1400px;margin:0 auto}
+  .panel{display:none}.panel.active{display:block}
+  .groups-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:16px}
+  .group-card{background:var(--bg2);border:1px solid var(--border)}
+  .group-hdr{background:var(--white);color:var(--bg);padding:8px 14px;font-weight:900;font-size:12px;letter-spacing:1px;display:flex;justify-content:space-between;align-items:center}
+  .group-hdr .gd{font-weight:400;font-size:10px;color:#555}
+  table{width:100%;border-collapse:collapse}
+  thead tr{border-bottom:1px solid var(--border)}
+  thead th{padding:6px 8px;text-align:right;color:var(--gray);font-size:10px;font-weight:600;letter-spacing:.5px}
+  thead th:first-child{text-align:left;padding-left:14px}
+  tbody tr{border-bottom:1px solid #161616}
+  tbody tr:hover{background:var(--bg3)}
+  tbody td{padding:9px 8px;text-align:right}
+  tbody td:first-child{text-align:left;padding-left:14px}
+  .tn{font-weight:600;font-size:13px}
+  .pts{font-weight:800;font-size:14px}
+  .p1 td:first-child{border-left:3px solid var(--green)}
+  .p2 td:first-child{border-left:3px solid var(--green)}
+  .p3 td:first-child{border-left:3px solid var(--yellow)}
+  .p4 td:first-child{border-left:3px solid var(--red)}
+  .elim td{opacity:.4}
+  .tag{font-size:9px;font-weight:700;padding:1px 5px;text-transform:uppercase;margin-left:6px;letter-spacing:.5px}
+  .tq{background:var(--green);color:#000}
+  .tx{background:var(--red);color:#fff}
+  .ty{background:var(--yellow);color:#000}
+  .gmatches{border-top:1px solid var(--border);padding:8px 14px 12px}
+  .mrow{display:flex;align-items:center;justify-content:space-between;padding:5px 0;font-size:12px;color:var(--lightgray);border-bottom:1px solid #1a1a1a}
+  .mrow:last-child{border-bottom:none}
+  .mteams{display:flex;align-items:center;gap:8px;width:100%}
+  .mhome{flex:1;text-align:right;font-weight:600}
+  .maway{flex:1;text-align:left;font-weight:600}
+  .mscore{font-weight:900;font-size:14px;min-width:46px;text-align:center;color:var(--white);background:var(--bg3);padding:2px 8px}
+  .mscore.pend{color:var(--gray);background:none;font-size:11px;font-weight:400}
+  .mdlbl{font-size:10px;color:var(--gray);margin:6px 0 2px;text-transform:uppercase;letter-spacing:1px}
+  /* BRACKET */
+  .bwrap{overflow-x:auto;padding-bottom:24px}
+  .bracket{display:flex;gap:0;min-width:1100px;align-items:stretch}
+  .round{display:flex;flex-direction:column;flex:1;min-width:155px}
+  .rhdr{text-align:center;padding:12px 8px;font-size:10px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:var(--gray);border-bottom:1px solid var(--border);background:var(--bg2)}
+  .rbody{display:flex;flex-direction:column;justify-content:space-around;flex:1;padding:8px 4px;gap:4px}
+  .mc{border:1px solid var(--border);background:var(--bg2);margin:2px 0}
+  .mc-id{font-size:9px;color:var(--gray);padding:3px 6px 0;letter-spacing:.5px}
+  .mc-team{display:flex;align-items:center;justify-content:space-between;padding:5px 8px;border-bottom:1px solid var(--border);font-size:12px}
+  .mc-team:last-of-type{border-bottom:none}
+  .mc-team.tbd{color:var(--gray);font-style:italic}
+  .mc-score{font-weight:700;font-size:13px;min-width:18px;text-align:center}
+  .mc.final-c{border-color:var(--gold)}
+  .champ-banner{background:var(--gold);color:#000;text-align:center;font-weight:900;font-size:11px;letter-spacing:2px;padding:4px;text-transform:uppercase}
+  .info-bar{background:var(--bg3);border:1px solid var(--border);padding:10px 14px;margin-bottom:20px;font-size:11px;color:var(--gray);line-height:1.6}
+  .info-bar strong{color:var(--white)}
+  .legend{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:16px;font-size:11px}
+  .ldot{width:10px;height:10px;border-radius:1px;display:inline-block;margin-right:6px}
+  .upd{font-size:10px;color:var(--gray);text-align:right;margin-bottom:12px}
+  .stitle{font-size:11px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:var(--gray);margin-bottom:16px;border-left:3px solid var(--white);padding-left:10px}
+  @media(max-width:768px){main{padding:12px}.groups-grid{grid-template-columns:1fr}header h1{font-size:16px}}
+</style>
+</head>
+<body>
+<header>
+  <div class="badge">FIFA</div>
+  <div>
+    <h1>World Cup 2026</h1>
+    <div class="sub">Canada · Mexico · United States</div>
+  </div>
+  <div style="margin-left:auto;display:flex;align-items:center;gap:8px">
+    <div class="live-dot"></div>
+    <div class="live-lbl">LIVE</div>
+  </div>
+</header>
+<nav>
+  <button class="active" onclick="showPanel('groups',this)">Group Stage</button>
+  <button onclick="showPanel('bracket',this)">Knockout Bracket</button>
+  <button onclick="showPanel('third',this)">3rd Place Race</button>
+</nav>
+<main>
+  <div class="panel active" id="panel-groups">
+    <div class="upd" id="last-updated">Data as of June 24, 2026 — Matchday 2 complete for Groups A–J &amp; L (partial K)</div>
+    <div class="legend">
+      <span><span class="ldot" style="background:var(--green)"></span>Qualified (Top 2)</span>
+      <span><span class="ldot" style="background:var(--yellow)"></span>3rd Place (may advance)</span>
+      <span><span class="ldot" style="background:var(--red)"></span>Bottom / Eliminated</span>
+    </div>
+    <div class="groups-grid" id="groups-grid"></div>
+  </div>
+  <div class="panel" id="panel-bracket">
+    <div class="info-bar">
+      <strong>Projected Round of 32 bracket</strong> — based on current MD2 standings.
+      <span style="color:var(--yellow)">All knockout matchups are projections until MD3 is complete (June 25–27).</span>
+      Best 8 third-place teams advance per FIFA Annex C rules.
+    </div>
+    <div class="bwrap"><div class="bracket" id="bracket-container"></div></div>
+  </div>
+  <div class="panel" id="panel-third">
+    <div class="info-bar">
+      The <strong>8 best third-place teams</strong> from all 12 groups advance to the Round of 32.
+      Ranked by: Points → Goal Difference → Goals For.
+    </div>
+    <div id="third-container"></div>
+  </div>
+</main>
+<script>
+const GROUPS={
+  A:['Mexico','South Korea','Czechia','South Africa'],
+  B:['Canada','Switzerland','Bosnia-Herzegovina','Qatar'],
+  C:['Brazil','Morocco','Scotland','Haiti'],
+  D:['United States','Australia','Paraguay','Türkiye'],
+  E:['Germany','Ivory Coast','Ecuador','Curaçao'],
+  F:['Netherlands','Japan','Sweden','Tunisia'],
+  G:['Egypt','Iran','Belgium','New Zealand'],
+  H:['Spain','Uruguay','Cape Verde','Saudi Arabia'],
+  I:['France','Norway','Senegal','Iraq'],
+  J:['Argentina','Austria','Algeria','Jordan'],
+  K:['Portugal','Colombia','DR Congo','Uzbekistan'],
+  L:['England','Ghana','Croatia','Panama']
+};
+
+const MATCHES=[
+  {g:'A',h:'Mexico',a:'South Africa',hs:2,as:0,md:1},
+  {g:'A',h:'South Korea',a:'Czechia',hs:2,as:1,md:1},
+  {g:'A',h:'Mexico',a:'South Korea',hs:1,as:0,md:2},
+  {g:'A',h:'South Africa',a:'Czechia',hs:1,as:1,md:2},
+  {g:'B',h:'Canada',a:'Bosnia-Herzegovina',hs:1,as:1,md:1},
+  {g:'B',h:'Switzerland',a:'Qatar',hs:1,as:1,md:1},
+  {g:'B',h:'Canada',a:'Qatar',hs:6,as:0,md:2},
+  {g:'B',h:'Switzerland',a:'Bosnia-Herzegovina',hs:4,as:1,md:2},
+  {g:'C',h:'Brazil',a:'Morocco',hs:1,as:1,md:1},
+  {g:'C',h:'Scotland',a:'Haiti',hs:1,as:0,md:1},
+  {g:'C',h:'Brazil',a:'Haiti',hs:3,as:0,md:2},
+  {g:'C',h:'Morocco',a:'Scotland',hs:1,as:0,md:2},
+  {g:'D',h:'United States',a:'Paraguay',hs:4,as:1,md:1},
+  {g:'D',h:'Australia',a:'Türkiye',hs:2,as:0,md:1},
+  {g:'D',h:'United States',a:'Australia',hs:2,as:0,md:2},
+  {g:'D',h:'Paraguay',a:'Türkiye',hs:1,as:0,md:2},
+  {g:'E',h:'Germany',a:'Curaçao',hs:7,as:1,md:1},
+  {g:'E',h:'Ivory Coast',a:'Ecuador',hs:1,as:0,md:1},
+  {g:'E',h:'Germany',a:'Ivory Coast',hs:2,as:1,md:2},
+  {g:'E',h:'Ecuador',a:'Curaçao',hs:0,as:0,md:2},
+  {g:'F',h:'Netherlands',a:'Japan',hs:2,as:2,md:1},
+  {g:'F',h:'Sweden',a:'Tunisia',hs:5,as:1,md:1},
+  {g:'F',h:'Netherlands',a:'Sweden',hs:5,as:1,md:2},
+  {g:'F',h:'Japan',a:'Tunisia',hs:4,as:0,md:2},
+  {g:'G',h:'Belgium',a:'Egypt',hs:1,as:1,md:1},
+  {g:'G',h:'Iran',a:'New Zealand',hs:2,as:2,md:1},
+  {g:'G',h:'Belgium',a:'Iran',hs:0,as:0,md:2},
+  {g:'G',h:'Egypt',a:'New Zealand',hs:3,as:1,md:2},
+  {g:'H',h:'Spain',a:'Cape Verde',hs:0,as:0,md:1},
+  {g:'H',h:'Saudi Arabia',a:'Uruguay',hs:1,as:1,md:1},
+  {g:'H',h:'Spain',a:'Saudi Arabia',hs:4,as:0,md:2},
+  {g:'H',h:'Uruguay',a:'Cape Verde',hs:2,as:2,md:2},
+  {g:'I',h:'France',a:'Senegal',hs:3,as:1,md:1},
+  {g:'I',h:'Norway',a:'Iraq',hs:4,as:1,md:1},
+  {g:'I',h:'France',a:'Iraq',hs:3,as:0,md:2},
+  {g:'I',h:'Norway',a:'Senegal',hs:3,as:2,md:2},
+  {g:'J',h:'Argentina',a:'Algeria',hs:3,as:0,md:1},
+  {g:'J',h:'Austria',a:'Jordan',hs:3,as:1,md:1},
+  {g:'J',h:'Argentina',a:'Austria',hs:2,as:0,md:2},
+  {g:'J',h:'Algeria',a:'Jordan',hs:2,as:1,md:2},
+  {g:'K',h:'Portugal',a:'DR Congo',hs:1,as:1,md:1},
+  {g:'K',h:'Colombia',a:'Uzbekistan',hs:3,as:1,md:1},
+  {g:'K',h:'Portugal',a:'Uzbekistan',hs:5,as:0,md:2},
+  {g:'L',h:'England',a:'Croatia',hs:4,as:2,md:1},
+  {g:'L',h:'Ghana',a:'Panama',hs:1,as:0,md:1},
+  {g:'L',h:'England',a:'Ghana',hs:0,as:0,md:2},
+];
+
+const MD3={
+  A:[{h:'Mexico',a:'South Africa'},{h:'South Korea',a:'Czechia'}],
+  B:[{h:'Canada',a:'Bosnia-Herzegovina'},{h:'Switzerland',a:'Qatar'}],
+  C:[{h:'Brazil',a:'Scotland'},{h:'Morocco',a:'Haiti'}],
+  D:[{h:'United States',a:'Türkiye'},{h:'Paraguay',a:'Australia'}],
+  E:[{h:'Germany',a:'Ecuador'},{h:'Ivory Coast',a:'Curaçao'}],
+  F:[{h:'Netherlands',a:'Tunisia'},{h:'Japan',a:'Sweden'}],
+  G:[{h:'Egypt',a:'Iran'},{h:'Belgium',a:'New Zealand'}],
+  H:[{h:'Spain',a:'Uruguay'},{h:'Cape Verde',a:'Saudi Arabia'}],
+  I:[{h:'France',a:'Norway'},{h:'Senegal',a:'Iraq'}],
+  J:[{h:'Argentina',a:'Jordan'},{h:'Algeria',a:'Austria'}],
+  K:[{h:'Colombia',a:'DR Congo'},{h:'Portugal',a:'Uzbekistan'}],
+  L:[{h:'England',a:'Panama'},{h:'Ghana',a:'Croatia'}],
+};
+
+function computeStandings(){
+  const s={};
+  for(const[g,teams]of Object.entries(GROUPS)){
+    s[g]={};
+    for(const t of teams)s[g][t]={gp:0,w:0,d:0,l:0,gf:0,ga:0,gd:0,pts:0};
+  }
+  for(const m of MATCHES){
+    if(!s[m.g])continue;
+    const h=s[m.g][m.h],a=s[m.g][m.a];
+    if(!h||!a)continue;
+    h.gp++;h.gf+=m.hs;h.ga+=m.as;h.gd+=m.hs-m.as;
+    a.gp++;a.gf+=m.as;a.ga+=m.hs;a.gd+=m.as-m.hs;
+    if(m.hs>m.as){h.w++;h.pts+=3;a.l++;}
+    else if(m.hs<m.as){a.w++;a.pts+=3;h.l++;}
+    else{h.d++;a.d++;h.pts++;a.pts++;}
+  }
+  const sorted={};
+  for(const[g,teams]of Object.entries(s)){
+    sorted[g]=Object.entries(teams)
+      .map(([n,d])=>({name:n,...d}))
+      .sort((a,b)=>b.pts-a.pts||b.gd-a.gd||b.gf-a.gf||a.name.localeCompare(b.name));
+  }
+  return sorted;
+}
+
+function getThirds(standings){
+  const thirds=[];
+  for(const[g,teams]of Object.entries(standings)){
+    if(teams.length>=3)thirds.push({group:g,...teams[2]});
+  }
+  return thirds.sort((a,b)=>b.pts-a.pts||b.gd-a.gd||b.gf-a.gf||a.name.localeCompare(b.name));
+}
+
+function renderGroups(standings){
+  const grid=document.getElementById('groups-grid');
+  grid.innerHTML='';
+  const md3dates={A:'Jun 26',B:'Jun 26',C:'Jun 25',D:'Jun 25',E:'Jun 25',F:'Jun 26',G:'Jun 26',H:'Jun 25',I:'Jun 26',J:'Jun 26',K:'Jun 27',L:'Jun 27'};
+
+  for(const[g,teams]of Object.entries(standings)){
+    const maxGP=Math.max(...teams.map(t=>t.gp));
+    const card=document.createElement('div');
+    card.className='group-card';
+    let rows=teams.map((t,i)=>{
+      let tag='';
+      if(i<=1&&t.pts>=3)tag=`<span class="tag tq">ADV</span>`;
+      else if(i===3&&t.pts===0&&maxGP>=2)tag=`<span class="tag tx">OUT</span>`;
+      else if(i===2)tag=`<span class="tag ty">3rd</span>`;
+      const cls=`p${i+1}${(i===3&&t.pts===0&&maxGP>=2)?' elim':''}`;
+      return`<tr class="${cls}">
+        <td><span class="tn">${t.name}</span>${tag}</td>
+        <td>${t.gp}</td><td>${t.w}</td><td>${t.d}</td><td>${t.l}</td>
+        <td>${t.gf}</td><td>${t.ga}</td>
+        <td>${t.gd>0?'+':''}${t.gd}</td>
+        <td class="pts">${t.pts}</td>
+      </tr>`;
+    }).join('');
+
+    // Matches
+    let mhtml='';
+    for(const md of[1,2]){
+      const ms=MATCHES.filter(m=>m.g===g&&m.md===md);
+      if(!ms.length)continue;
+      mhtml+=`<div class="mdlbl">Matchday ${md}</div>`;
+      for(const m of ms)mhtml+=`<div class="mrow"><div class="mteams"><div class="mhome">${m.h}</div><div class="mscore">${m.hs}–${m.as}</div><div class="maway">${m.a}</div></div></div>`;
+    }
+    const md3done=MATCHES.filter(m=>m.g===g&&m.md===3);
+    if(md3done.length>0){
+      mhtml+=`<div class="mdlbl">Matchday 3</div>`;
+      for(const m of md3done)mhtml+=`<div class="mrow"><div class="mteams"><div class="mhome">${m.h}</div><div class="mscore">${m.hs}–${m.as}</div><div class="maway">${m.a}</div></div></div>`;
+    } else {
+      mhtml+=`<div class="mdlbl">Matchday 3 — ${md3dates[g]||'Jun 27'}</div>`;
+      for(const m of(MD3[g]||[]))mhtml+=`<div class="mrow"><div class="mteams"><div class="mhome">${m.h}</div><div class="mscore pend">vs</div><div class="maway">${m.a}</div></div></div>`;
+    }
+
+    card.innerHTML=`
+      <div class="group-hdr"><span>GROUP ${g}</span><span class="gd">MD3: ${md3dates[g]||'Jun 27'}</span></div>
+      <table><thead><tr><th>Team</th><th>GP</th><th>W</th><th>D</th><th>L</th><th>GF</th><th>GA</th><th>GD</th><th>PTS</th></tr></thead>
+      <tbody>${rows}</tbody></table>
+      <div class="gmatches">${mhtml}</div>`;
+    grid.appendChild(card);
+  }
+}
+
+function buildBracket(standings){
+  const container=document.getElementById('bracket-container');
+  const top={};
+  for(const[g,teams]of Object.entries(standings)){
+    top[`1${g}`]=teams[0]?.name||'TBD';
+    top[`2${g}`]=teams[1]?.name||'TBD';
+  }
+  const thirds=getThirds(standings);
+  const t3=thirds.slice(0,8).map(t=>t.name);
+  while(t3.length<8)t3.push('3rd TBD');
+
+  const r32=[
+    {id:'R32-1',t1:top['1A'],t2:top['2B']},
+    {id:'R32-2',t1:top['1C'],t2:top['2D']},
+    {id:'R32-3',t1:top['1E'],t2:top['2F']},
+    {id:'R32-4',t1:top['1G'],t2:top['2H']},
+    {id:'R32-5',t1:top['1I'],t2:top['2J']},
+    {id:'R32-6',t1:top['1K'],t2:top['2L']},
+    {id:'R32-7',t1:t3[0],t2:t3[1]},
+    {id:'R32-8',t1:t3[2],t2:t3[3]},
+    {id:'R32-9',t1:top['2A'],t2:top['1B']},
+    {id:'R32-10',t1:top['2C'],t2:top['1D']},
+    {id:'R32-11',t1:top['2E'],t2:top['1F']},
+    {id:'R32-12',t1:top['2G'],t2:top['1H']},
+    {id:'R32-13',t1:top['2I'],t2:top['1J']},
+    {id:'R32-14',t1:top['2K'],t2:top['1L']},
+    {id:'R32-15',t1:t3[4],t2:t3[5]},
+    {id:'R32-16',t1:t3[6],t2:t3[7]},
+  ];
+  const r16=[
+    {id:'R16-1',t1:'W(R32-1)',t2:'W(R32-2)'},
+    {id:'R16-2',t1:'W(R32-3)',t2:'W(R32-4)'},
+    {id:'R16-3',t1:'W(R32-5)',t2:'W(R32-6)'},
+    {id:'R16-4',t1:'W(R32-7)',t2:'W(R32-8)'},
+    {id:'R16-5',t1:'W(R32-9)',t2:'W(R32-10)'},
+    {id:'R16-6',t1:'W(R32-11)',t2:'W(R32-12)'},
+    {id:'R16-7',t1:'W(R32-13)',t2:'W(R32-14)'},
+    {id:'R16-8',t1:'W(R32-15)',t2:'W(R32-16)'},
+  ];
+  const qf=[
+    {id:'QF-1',t1:'W(R16-1)',t2:'W(R16-2)'},
+    {id:'QF-2',t1:'W(R16-3)',t2:'W(R16-4)'},
+    {id:'QF-3',t1:'W(R16-5)',t2:'W(R16-6)'},
+    {id:'QF-4',t1:'W(R16-7)',t2:'W(R16-8)'},
+  ];
+  const sf=[
+    {id:'SF-1',t1:'W(QF-1)',t2:'W(QF-2)'},
+    {id:'SF-2',t1:'W(QF-3)',t2:'W(QF-4)'},
+  ];
+  const fin=[{id:'FINAL',t1:'W(SF-1)',t2:'W(SF-2)'}];
+  const rounds=[
+    {label:'Round of 32',matches:r32},
+    {label:'Round of 16',matches:r16},
+    {label:'Quarter-Finals',matches:qf},
+    {label:'Semi-Finals',matches:sf},
+    {label:'Final ⚽',matches:fin},
+  ];
+  container.innerHTML='';
+  for(const round of rounds){
+    const isFinal=round.label.startsWith('Final');
+    const el=document.createElement('div');
+    el.className='round';
+    el.innerHTML=`<div class="rhdr">${round.label}</div><div class="rbody">${
+      round.matches.map(m=>{
+        const t1tbd=m.t1.startsWith('W(')||m.t1.includes('TBD');
+        const t2tbd=m.t2.startsWith('W(')||m.t2.includes('TBD');
+        return`<div class="mc${isFinal?' final-c':''}">
+          <div class="mc-id">${m.id}</div>
+          <div class="mc-team${t1tbd?' tbd':''}"><span>${m.t1}</span><span class="mc-score">–</span></div>
+          <div class="mc-team${t2tbd?' tbd':''}"><span>${m.t2}</span><span class="mc-score">–</span></div>
+          ${isFinal?'<div class="champ-banner">🏆 CHAMPION</div>':''}
+        </div>`;
+      }).join('')
+    }</div>`;
+    container.appendChild(el);
+  }
+}
+
+function renderThird(standings){
+  const thirds=getThirds(standings);
+  const container=document.getElementById('third-container');
+  let html=`<div class="stitle">3rd-Place Team Rankings (after MD2)</div>
+  <div style="overflow-x:auto"><table style="width:100%;min-width:580px;border-collapse:collapse;border:1px solid var(--border)">
+  <thead><tr style="background:var(--bg2)">
+    <th style="padding:8px 12px;text-align:left;font-size:10px;color:var(--gray);letter-spacing:1px">RANK</th>
+    <th style="padding:8px 12px;text-align:left;font-size:10px;color:var(--gray);letter-spacing:1px">TEAM</th>
+    <th style="padding:8px 12px;text-align:left;font-size:10px;color:var(--gray);letter-spacing:1px">GRP</th>
+    <th style="padding:8px 12px;text-align:right;font-size:10px;color:var(--gray);letter-spacing:1px">GP</th>
+    <th style="padding:8px 12px;text-align:right;font-size:10px;color:var(--gray);letter-spacing:1px">PTS</th>
+    <th style="padding:8px 12px;text-align:right;font-size:10px;color:var(--gray);letter-spacing:1px">GD</th>
+    <th style="padding:8px 12px;text-align:right;font-size:10px;color:var(--gray);letter-spacing:1px">GF</th>
+    <th style="padding:8px 12px;text-align:center;font-size:10px;color:var(--gray);letter-spacing:1px">STATUS</th>
+  </tr></thead><tbody>`;
+  thirds.forEach((t,i)=>{
+    const q=i<8;
+    html+=`<tr style="border-bottom:1px solid var(--border)${i===7?';background:rgba(245,158,11,.05)':''}">
+      <td style="padding:10px 12px;font-weight:800;border-left:3px solid ${q?'var(--yellow)':'var(--border)'}">${i+1}</td>
+      <td style="padding:10px 12px;font-weight:700">${t.name}</td>
+      <td style="padding:10px 12px;color:var(--gray)">Group ${t.group}</td>
+      <td style="padding:10px 12px;text-align:right">${t.gp}</td>
+      <td style="padding:10px 12px;text-align:right;font-weight:800">${t.pts}</td>
+      <td style="padding:10px 12px;text-align:right">${t.gd>0?'+':''}${t.gd}</td>
+      <td style="padding:10px 12px;text-align:right">${t.gf}</td>
+      <td style="padding:10px 12px;text-align:center">
+        <span class="tag ${q?'tq':'ty'}">${q?'PROJ IN':'CONTENTION'}</span>
+      </td>
+    </tr>`;
+    if(i===7)html+=`<tr><td colspan="8" style="padding:4px 12px;font-size:10px;color:var(--yellow);text-align:center;background:rgba(245,158,11,.05)">— CUT LINE — Top 8 advance to Round of 32 —</td></tr>`;
+  });
+  html+=`</tbody></table></div>
+  <div style="margin-top:16px;padding:12px;background:var(--bg2);border:1px solid var(--border);font-size:11px;color:var(--gray)">
+    <strong style="color:var(--white)">Note:</strong> Matchday 3 results (June 25–27) will determine the final 8.
+    Colombia vs DR Congo (Group K) plays June 24 and will update this table.
+    Tie-breaking: Points → GD → GF → Head-to-Head → Disciplinary → Draw of lots.
+  </div>`;
+  container.innerHTML=html;
+}
+
+function showPanel(name,btn){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));
+  document.getElementById('panel-'+name).classList.add('active');
+  if(btn)btn.classList.add('active');
+}
+
+async function tryLiveUpdate(){
+  try{
+    const now=new Date();
+    const ds=`${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}`;
+    const resp=await fetch(`https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard?limit=100&dates=20260611-${ds}`,{mode:'cors',credentials:'omit'});
+    if(!resp.ok)return;
+    const data=await resp.json();
+    let added=0;
+    for(const ev of(data.events||[])){
+      const comp=ev.competitions?.[0];
+      if(!comp)continue;
+      const st=comp.status?.type;
+      if(!st?.completed&&st?.state!=='post')continue;
+      const cs=comp.competitors;
+      const hm=cs.find(c=>c.homeAway==='home')||cs[0];
+      const aw=cs.find(c=>c.homeAway==='away')||cs[1];
+      if(!hm||!aw)continue;
+      const hn=hm.team?.displayName,an=aw.team?.displayName;
+      const hs=parseInt(hm.score)||0,as=parseInt(aw.score)||0;
+      let mg=null;
+      for(const[g,teams]of Object.entries(GROUPS)){
+        if(teams.includes(hn)&&teams.includes(an)){mg=g;break;}
+      }
+      if(!mg)continue;
+      const ex=MATCHES.find(m=>m.g===mg&&((m.h===hn&&m.a===an)||(m.h===an&&m.a===hn)));
+      if(!ex){
+        const gamesInGroup=MATCHES.filter(m=>m.g===mg).length;
+        MATCHES.push({g:mg,h:hn,a:an,hs,as,md:Math.floor(gamesInGroup/2)+1});
+        added++;
+      }
+    }
+    if(added>0){
+      const s=computeStandings();
+      renderGroups(s);buildBracket(s);renderThird(s);
+      document.getElementById('last-updated').textContent=`Live update from ESPN: ${new Date().toLocaleTimeString()} — ${added} new result(s) added`;
+    }
+  }catch(e){}
+}
+
+function init(){
+  const s=computeStandings();
+  renderGroups(s);
+  buildBracket(s);
+  renderThird(s);
+  setTimeout(tryLiveUpdate,2000);
+  setInterval(tryLiveUpdate,5*60*1000);
+}
+init();
+</script>
+</body>
+</html>
